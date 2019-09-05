@@ -1,0 +1,41 @@
+#name, main, version and api are required
+name: Gateworld
+main: main.MainClass
+#remember version and api is string, don't write it like this: 1.0.0, or there will be an exception
+version: "0.0.1"
+api: ["0.0.1"]
+
+load: POSTWORLD
+author: Pryme8
+description: A Adverture Plugin
+website: http://Pryme8.com
+commands:
+  player_reset_class:
+    description: Resetting the Player Class
+    usage: "/player_reset_class"
+    permission: gateworld.command.player_reset_class
+  player_choose_class_ranger:
+    description: A Simple Class Choice
+    usage: "/player_choose_class_ranger"
+    permission: gateworld.command.player_choose_class_ranger
+  player_choose_class_warrior:
+    description: A Simple Class Choice
+    usage: "/player_choose_class_warrior"
+    permission: gateworld.command.player_choose_class_warrior
+  player_choose_class_craftsman:
+    description: A Simple Class Choice
+    usage: "/player_choose_class_craftsman"
+    permission: gateworld.command.player_choose_class_craftsman
+permissions:
+  gateworld.command.player_reset_class:
+    description: "Resetting the Player Class"
+    default: true
+  gateworld.command.player_choose_class_ranger:
+    description: "Ranger Class Choice"
+    default: true
+  gateworld.command.player_choose_class_warrior:
+    description: "Warrior Class Choice"
+    default: true
+  gateworld.command.player_choose_class_craftsman:
+    description: "Craftsman Class Choice"
+    default: true
