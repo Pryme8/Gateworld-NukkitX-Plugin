@@ -1,6 +1,6 @@
 package main;
 
-import cn.nukkit.block.BlockTorch;
+import cn.nukkit.Server;
 import cn.nukkit.command.Command;
 import cn.nukkit.command.CommandSender;
 import cn.nukkit.inventory.Inventory;
@@ -9,16 +9,12 @@ import cn.nukkit.math.Vector3;
 import cn.nukkit.plugin.PluginBase;
 import cn.nukkit.utils.Config;
 import cn.nukkit.Player;
-
-import cn.nukkit.inventory.PlayerInventory;
-import cn.nukkit.level.particle.*;
-import cn.nukkit.utils.TextFormat;
-import cn.nukkit.utils.Utils;
-import com.google.common.collect.ImmutableSet;
+import main.database.Database;
+import main.gwserver.gwServer;
 
 import java.io.File;
 
-import java.io.IOException;
+import java.sql.SQLException;
 import java.util.LinkedHashMap;
 
 /**Template
@@ -28,19 +24,23 @@ import java.util.LinkedHashMap;
 /**gateworld
  * author: Pryme8
  */
-public class MainClass extends PluginBase {
 
-    @Override
-    public void onLoad() {
+public class MainClass extends PluginBase {
+    public static boolean enabled;
+    public Database db;
+    private static main.gwserver.gwServer gwServer;
+    private Config config;
+
+
+    public void onLoad()    {
         this.getLogger().info("Gateworld Plugin - Loaded");
     }
 
     @Override
     public void onEnable() {
-        this.getLogger().info("Gateworld Version: ");
-        //this.getLogger().info(String.valueOf(this.getDataFolder().mkdirs()));
-        //Register the EventListener
-        //this.getServer().getPluginManager().registerEvents(new EventListener(this), this);
+        this.getLogger().info("Gateworld : onEnable()");
+        this.getServer().getPluginManager().registerEvents(new EventListener(this), this);
+        createConfig();
 
         //PluginTask
         //this.getServer().getScheduler().scheduleRepeatingTask(new BroadcastPluginTask(this), 200);
@@ -48,8 +48,43 @@ public class MainClass extends PluginBase {
         //Save resources
         //this.saveResource("string.txt");
 
+    }
+
+    private void bootServer(){
+        //Connect to DB
+        enabled = (Server.getInstance().getPluginManager().getPlugin("DbLib") != null);
+        if(enabled){
+            this.getLogger().info("Connection Loading");
+            db = new Database(this);
+
+            db.getConnection();
+
+            this.getLogger().info("Connection Enabled: "+String.valueOf(enabled));
+            try {
+
+                gwServer = new gwServer(this);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+        }else{
+            this.getLogger().info("DbLib Not Present");
+        }
+    }
+
+    public main.gwserver.gwServer getGwServer(){
+        return gwServer;
+    }
+
+    @Override
+    public void onDisable() {
+        this.getLogger().info("Gateworld - Disabled");
+    }
+
+
+    private void createConfig(){
         //Config reading and writing
-        Config config = new Config(
+        config = new Config(
                 new File(this.getDataFolder(), "config.yml"),
                 Config.YAML,
                 //Default values (not necessary)
@@ -61,19 +96,23 @@ public class MainClass extends PluginBase {
                         put("class-warrior-warp-end", "50 83 65");
                         put("class-craftsman-warp-end", "50 83 65");
 
+                        put("mysql-host", "localhost");
+                        put("mysql-port", "3306");
+                        put("mysql-dbName", "db01");
+                        put("mysql-userName", "root");
+                        put("mysql-password", "adminpassword");
+
                     }
                 });
         //Now try to get the value, the default value will be given if the key isn't exist!
         this.getLogger().info(String.valueOf(config.get("gate-world-version", "0.0.1")));
-
-        this.getLogger().info("- Enabled :");
         //Don't forget to save it!
         config.save();
+        bootServer();
     }
 
-    @Override
-    public void onDisable() {
-        this.getLogger().info("Gateworld - Disabled");
+    public Config getConfig() {
+        return config;
     }
 
     @Override
@@ -163,5 +202,8 @@ public class MainClass extends PluginBase {
         }
         return true;
     }
+
+
+
 
 }
