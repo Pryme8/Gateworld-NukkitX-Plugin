@@ -3,7 +3,7 @@ name: Gateworld
 main: main.MainClass
 #remember version and api is string, don't write it like this: 1.0.0, or there will be an exception
 version: "0.0.1"
-api: ["0.0.1"]
+api: ["1.0.0"]
 
 load: POSTWORLD
 author: Pryme8
@@ -26,6 +26,15 @@ commands:
     description: A Simple Class Choice
     usage: "/player_choose_class_craftsman"
     permission: gateworld.command.player_choose_class_craftsman
+  warp_to_main_start:
+    description: Warp to the MainZone Starting Area
+    usage: "/warp_to_main_start"
+    permission: gateworld.command.warp_to_main_start
+  main_back_to_start:
+    description: Warp From the MainZone to Starting Area
+    usage: "/main_back_to_start"
+    permission: gateworld.command.main_back_to_start
+
 permissions:
   gateworld.command.player_reset_class:
     description: "Resetting the Player Class"
@@ -38,4 +47,10 @@ permissions:
     default: true
   gateworld.command.player_choose_class_craftsman:
     description: "Craftsman Class Choice"
+    default: true
+  gateworld.command.warp_to_main_start:
+    description: "Warp to the MainZone Starting Area"
+    default: true
+  gateworld.command.main_back_to_start:
+    description: "Warp From the MainZone to Starting Area"
     default: true

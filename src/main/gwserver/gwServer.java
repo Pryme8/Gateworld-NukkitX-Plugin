@@ -18,6 +18,15 @@ public class gwServer {
         reloadOnlinePlayers();
     }
 
+    public PlayerContainer getPlayerContainerByPlayer(Player p){
+        for(PlayerContainer pc : getPlayersOnline()){
+           if(pc.getPlayer().getUniqueId().equals(p.getUniqueId())) {
+               return pc;
+           }
+        }
+        return null;
+    }
+
     public List<PlayerContainer> getPlayersOnline(){
         return playersOnline;
     }
@@ -36,14 +45,14 @@ public class gwServer {
             }
         }
         core.getLogger().info("Adding Player to gwServer.");
-        PlayerContainer pc = new PlayerContainer(pData, p);
+        PlayerContainer pc = new PlayerContainer(pData, p, core);
         getPlayersOnline().add(pc);
     }
 
     public void removePlayer(Player p){
         PlayerContainer pc = null;
         for(PlayerContainer _pc : getPlayersOnline()){
-            if(_pc.getNplayer().getUniqueId() == p.getUniqueId()){
+            if(_pc.getPlayer().getUniqueId() == p.getUniqueId()){
                 pc = _pc;
                 break;
             }
