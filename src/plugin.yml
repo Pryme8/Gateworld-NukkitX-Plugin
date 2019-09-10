@@ -1,13 +1,13 @@
 #name, main, version and api are required
 name: Gateworld
-main: main.MainClass
+main: gw.Core
 #remember version and api is string, don't write it like this: 1.0.0, or there will be an exception
-version: "0.0.1"
+version: "0.0.2"
 api: ["1.0.0"]
 
 load: POSTWORLD
 author: Pryme8
-description: A Adverture Plugin
+description: A Adverture/Guild Realm Plugin
 website: http://Pryme8.com
 commands:
   player_reset_class:
@@ -34,6 +34,10 @@ commands:
     description: Warp From the MainZone to Starting Area
     usage: "/main_back_to_start"
     permission: gateworld.command.main_back_to_start
+  create_new_guild:
+    description: Create New Guild
+    usage: "/create_new_guild"
+    permission: gateworld.command.create_new_guild
 
 permissions:
   gateworld.command.player_reset_class:
@@ -53,4 +57,7 @@ permissions:
     default: true
   gateworld.command.main_back_to_start:
     description: "Warp From the MainZone to Starting Area"
+    default: true
+  gateworld.command.create_new_guild:
+    description: "Admin Create New Guild"
     default: true
