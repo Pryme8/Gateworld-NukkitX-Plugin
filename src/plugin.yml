@@ -34,6 +34,14 @@ commands:
     description: Warp From the MainZone to Starting Area
     usage: "/main_back_to_start"
     permission: gateworld.command.main_back_to_start
+  main_to_free_zone:
+      description: Warp From the MainZone to FreeZone
+      usage: "/main_to_free_zone"
+      permission: gateworld.command.main_to_free_zone
+  free_zone_to_main_zone:
+    description: Warp From the FreeZone to MainZone
+    usage: "/free_zone_to_main_zone"
+    permission: gateworld.command.free_zone_to_main_zone
   create_new_guild:
     description: Create New Guild
     usage: "/create_new_guild"
@@ -57,6 +65,12 @@ permissions:
     default: true
   gateworld.command.main_back_to_start:
     description: "Warp From the MainZone to Starting Area"
+    default: true
+  gateworld.command.main_to_free_zone:
+    description: "Warp From the MainZone to FreeZone"
+    default: true
+  gateworld.command.free_zone_to_main_zone:
+    description: "Warp From the FreeZone to MainZone"
     default: true
   gateworld.command.create_new_guild:
     description: "Admin Create New Guild"

@@ -1,16 +1,24 @@
 package gw.player.score.trackers;
 
+import java.util.HashMap;
+
 public class user_pvp_data{
   public double totalDamage;
   public double totalDamageTaken;
   public int totalKills;
   public int murderedCount;
 
+  private HashMap map = new HashMap<String, String>();
+
   public user_pvp_data(){
       totalDamage = 0;
       totalDamageTaken = 0;
       totalKills = 0;
       murderedCount = 0;
+      map.put("totalDamage", "add");
+      map.put("totalDamageTaken", "add");
+      map.put("totalKills", "add");
+      map.put("murderedCount", "add");
   }
     /*--------------------*/
     /*----- METHODS ------*/
@@ -34,6 +42,11 @@ public class user_pvp_data{
     public int getTotalKills() {
         return totalKills;
     }
+
+    public HashMap getMap() {
+        return map;
+    }
+
     /*--------------------*/
     /*----- SETTERS ------*/
     /*--------------------*/

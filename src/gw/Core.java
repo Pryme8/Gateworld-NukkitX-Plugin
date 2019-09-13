@@ -11,6 +11,7 @@ import gw.database.Database;
 import gw.gates.Gates;
 import gw.engine.Engine;
 import gw.guild.Guild;
+import gw.items.MapMod;
 import gw.player.PlayerContainer;
 import gw.player.PlayerTasks;
 import net.minidev.json.JSONArray;
@@ -43,6 +44,7 @@ public class Core extends PluginBase {
     public void onLoad()    {
         createConfig();
         loadGates();
+
 
         this.getLogger().info("Gateworld Plugin - Loaded");
     }
@@ -92,14 +94,20 @@ public class Core extends PluginBase {
     @Override
     public void onEnable() {
         this.getLogger().info("Gateworld : onEnable()");
-
+        bootServer();
+        loadGuilds();
         //Enabled Response Overrides
-        this.getServer().getPluginManager().registerEvents(new EventListener(this), this);
+        this.getServer().getPluginManager().registerEvents(new EventListener(this, getEngine()), this);
+        this.getServer().getPluginManager().registerEvents(new MapMod(this, getEngine()), this);
         //Enabled Player Tasks
         getServer().getScheduler().scheduleDelayedRepeatingTask(this, new PlayerTasks(this), 2, 2);
 
-        bootServer();
-        loadGuilds();
+        try {
+            getEngine().reloadOnlinePlayers();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
     }
 
     private void bootServer(){
@@ -110,11 +118,8 @@ public class Core extends PluginBase {
             db = new Database(this);
             db.getConnection();
             this.getLogger().info("Connection Enabled: "+String.valueOf(enabled));
-            try {
-                engine = new Engine(this);
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            engine = new Engine(this);
+
         }else{
             this.getLogger().info("DbLib Not Present");
         }
@@ -253,6 +258,7 @@ public class Core extends PluginBase {
                 }
             break;
             case "warp_to_main_start":
+            case "free_zone_to_main_zone":
                 if(sender.getName() != "CONSOLE"){
                         pc.setZone("MainZone");
                         pc.setSpawn();
@@ -263,6 +269,12 @@ public class Core extends PluginBase {
                     Inventory inv = pc.getPlayer().getInventory();
                     inv.clearAll();
                     pc.setZone("StartZone");
+                    pc.setSpawn();
+                }
+            break;
+            case "main_to_free_zone":
+                if(sender.getName() != "CONSOLE"){
+                    pc.setZone("FreeZone");
                     pc.setSpawn();
                 }
             break;

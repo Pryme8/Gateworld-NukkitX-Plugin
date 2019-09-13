@@ -1,8 +1,7 @@
 package gw.guild;
-import cn.nukkit.utils.Hash;
-import com.j256.ormlite.stmt.query.In;
-import com.mysql.fabric.xmlrpc.base.Array;
+import cn.nukkit.level.Level;
 import gw.Core;
+import gw.guild.member.Member;
 import gw.player.PlayerContainer;
 
 import java.sql.*;
@@ -16,10 +15,11 @@ public class Guild {
     private String tag;
     private String description;
     private Integer leaderID;
+    private String type;
 
     private boolean isReady = false;
 
-    private Integer[] memberIds;
+    private List<Member> members = new ArrayList();
     private Core parent;
 
     public Guild(Integer _id, Core _p){
@@ -40,6 +40,9 @@ public class Guild {
             tag = gData.get("tag");
             description = gData.get("description");
             leaderID = Integer.parseInt(gData.get("leaderID"));
+            description = gData.get("description");
+            type = gData.get("type");
+
             setReady(true);
         } catch (SQLException e) {
             e.printStackTrace();
@@ -50,7 +53,7 @@ public class Guild {
         HashMap<String, String> results = new HashMap();
         parent.getLogger().info("Getting Guild Data!");
         String query = "SELECT * FROM `guild_data`";
-        Connection con = parent.db.getConnection();
+        Connection con = parent.db.currentConnection();
         con.prepareStatement(query);
         Statement statement = con.prepareStatement(query);
         ResultSet rs = statement.executeQuery(query);
@@ -61,9 +64,33 @@ public class Guild {
                 results.put("tag", rs.getString("tag"));
                 results.put("description", rs.getString("description"));
                 results.put("leaderID", rs.getString("leaderID"));
+                results.put("type", rs.getString("type"));
             }
         }
         return results;
+    }
+
+    private void syncMembers() throws SQLException {
+        getMembers().clear();
+        parent.getLogger().info("Syncing Members!");
+        String query = "SELECT * FROM `guild_members` WHERE `gid`="+getId();
+        Connection con = parent.db.currentConnection();
+        con.prepareStatement(query);
+        Statement statement = con.prepareStatement(query);
+        ResultSet rs = statement.executeQuery(query);
+        if (rs != null){
+            while( rs.next()){
+                Integer _id = Integer.parseInt(rs.getString("id"));
+                getMembers().add(
+                        new Member(parent.getEngine().getPlayerContainerByID(_id))
+                );
+            }
+        }
+    }
+
+    public void addMember(PlayerContainer _pc){
+        getMembers().add(new Member(_pc));
+        _pc.setCurrentGuild(this);
     }
 
     /*--------------------*/
@@ -82,13 +109,31 @@ public class Guild {
         return tag;
     }
 
-    private Integer[] getMemberIds() {
-        return memberIds;
+    private List<Member> getMembers() {
+        return members;
     }
 
     private boolean isReady(){
         return isReady;
     }
+
+    public Integer getLeaderID() {
+        return leaderID;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public Member getMemberByID(Integer _id){
+        for(Member m : getMembers()){
+            if(m.getID() == _id){
+                return m;
+            }
+        }
+        return null;
+    }
+
     /*--------------------*/
     /*----- SETTERS ------*/
     /*--------------------*/
@@ -116,7 +161,7 @@ public class Guild {
 
         parent.getLogger().info("Checking for Leader on Database!");
         String query = "SELECT * FROM `guild_data` WHERE `leaderID` = "+pcID;
-        Connection con = parent.db.getConnection();
+        Connection con = parent.db.currentConnection();
         con.prepareStatement(query);
         Statement statement = con.prepareStatement(query);
         ResultSet rs = statement.executeQuery(query);
@@ -152,7 +197,7 @@ public class Guild {
         List<Integer> results = new ArrayList<Integer>();
         parent.getLogger().info("Getting all Guilds!");
         String query = "SELECT id FROM `guild_data`";
-        Connection con = parent.db.getConnection();
+        Connection con = parent.db.currentConnection();
         con.prepareStatement(query);
         Statement statement = con.prepareStatement(query);
         ResultSet rs = statement.executeQuery(query);
@@ -167,11 +212,32 @@ public class Guild {
 
     public static List<HashMap> getInfluencingGeofences(PlayerContainer pc, Core parent) throws SQLException {
         List<HashMap> results = new ArrayList<>();
-
         parent.getLogger().info("Getting Influencing Geofences!");
         String query = "SELECT id, gid, geofenceMeta FROM `guild_zones` WHERE `world` = '"+pc.getCurrentZone()+"'";
         parent.getLogger().info(query);
-        Connection con = parent.db.getConnection();
+        Connection con = parent.db.currentConnection();
+        con.prepareStatement(query);
+        Statement statement = con.prepareStatement(query);
+        ResultSet rs = statement.executeQuery(query);
+        if (rs != null){
+            while( rs.next()){
+                HashMap<String, String>  r = new HashMap<>();
+                r.put("id", String.valueOf(rs.getInt("id")));
+                r.put("guild", String.valueOf(rs.getInt("gid")));
+                r.put("meta", rs.getString("geofenceMeta"));
+                results.add(r);
+            }
+            return results;
+        }
+        return null;
+    }
+
+    public static List<HashMap> getInfluencingGeofences(Level level, Core parent) throws SQLException {
+        List<HashMap> results = new ArrayList<>();
+        parent.getLogger().info("Getting Influencing Geofences!");
+        String query = "SELECT id, gid, geofenceMeta FROM `guild_zones` WHERE `world` = '"+level.getName()+"'";
+        parent.getLogger().info(query);
+        Connection con = parent.db.currentConnection();
         con.prepareStatement(query);
         Statement statement = con.prepareStatement(query);
         ResultSet rs = statement.executeQuery(query);

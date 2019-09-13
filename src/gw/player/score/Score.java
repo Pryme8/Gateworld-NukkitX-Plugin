@@ -1,14 +1,18 @@
 package gw.player.score;
 
+import cn.nukkit.utils.Hash;
 import gw.player.score.trackers.*;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 
 public class Score {
     private long lastUpdate;
-    private long updateInterval = 30000;
+    private long updateInterval = 100000;
     private boolean dirty = false;
     private gw.player.score.trackers.user_pvp_data user_pvp_data;
     private gw.player.score.trackers.user_basic_data user_basic_data;
@@ -28,17 +32,23 @@ public class Score {
     /*----- METHODS ------*/
     /*--------------------*/
 
-    public ArrayList getData() throws IllegalAccessException{
+    public ArrayList getData() throws IllegalAccessException, NoSuchMethodException {
         ArrayList R = new ArrayList<>();
         ArrayList r = new ArrayList<>();
+        int i = 0;
         for(Object s : sendList) {
             R.add(s.getClass().getSimpleName());
             for (Field f : s.getClass().getDeclaredFields()) {
+                if (Modifier.isPrivate(f.getModifiers())) {
+                    continue;
+                }
                 r.add(f.getName());
                 r.add(f.get(s));
+                r.add(getSendItemMap(s).get(f.getName()));
             }
             R.add(r.clone());
             r.clear();
+            i++;
         }
         resetTrackers();
         return R;
@@ -84,6 +94,14 @@ public class Score {
 
     public boolean isDirty() {
         return dirty;
+    }
+
+    public HashMap getSendItemMap(Object item){
+        switch(item.getClass().getSimpleName()){
+            case "user_basic_data": return getUser_basic_data().getMap();
+            case "user_pvp_data": return getUser_pvp_data().getMap();
+        }
+        return null;
     }
 
     /*--------------------*/

@@ -2,14 +2,17 @@ package gw.player;
 import cn.nukkit.Player;
 import cn.nukkit.Server;
 import cn.nukkit.level.Level;
+import cn.nukkit.level.Position;
 import cn.nukkit.math.Vector3;
-import com.j256.ormlite.stmt.query.In;
 import gw.Core;
 import gw.geofence.Geofence;
 import gw.guild.Guild;
 import gw.player.score.Score;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +29,7 @@ public class PlayerContainer{
      private Score score;
 
      private List<Geofence> influecingGeofences = new ArrayList<>();
+     private Geofence lastGateofInfluence = null;
      private Guild currentGuild;
 
      public PlayerContainer(Player p, Core _parent){
@@ -47,23 +51,50 @@ public class PlayerContainer{
         syncPlayerData();
         checkSpawnLocation();
         updateInfluencingGeofences();
+        syncGuildData();
         isReady = true;
     }
 
     public void syncPlayerData() throws SQLException {
         List<String> pData = parent.db.getPlayerData(player, parent);
         if (pData.size() == 0) {
-            boolean playerAdded = parent.db.createNewPlayer(player, parent);
+            boolean playerAdded = parent.db.createNewPlayer(this, parent);
             parent.getLogger().info("Player Added: " + String.valueOf(playerAdded));
             if (playerAdded) {
                 pData = parent.db.getPlayerData(player, parent);
+                parent.db.scoreBoardsInit(Integer.parseInt(pData.get(0)), parent);
             }
         }
+
         id = Integer.parseInt(pData.get(0));
         name = pData.get(1);
         classType = pData.get(2);
         currentZone = pData.get(3);
         currentSpawn = pData.get(4);
+    }
+
+    public void syncGuildData() throws SQLException {
+        getParent().getLogger().info("Getting Guild Membership!");
+        String query = "SELECT * FROM `guild_members` WHERE `userID`="+getId();
+        parent.getLogger().info(query);
+        Connection con =  getParent().db.currentConnection();
+        con.prepareStatement(query);
+        Statement statement = con.prepareStatement(query);
+        ResultSet rs = statement.executeQuery(query);
+        if (rs != null ){
+            parent.getLogger().info(rs.toString());
+            Guild g;
+            while(rs.next()){
+                g =  getParent().getEngine().getGuildByID(   Integer.parseInt(rs.getString("gid")));
+                g.addMember(
+                     this
+                );
+                parent.getLogger().info("Member Added to Guild");
+                String gName = "§l§6"+g.getTag()+" §r§f§o"+getPlayer().getName()+" §r";
+                getPlayer().setDisplayName(gName);
+                getPlayer().setNameTag(gName);
+            }
+        }
     }
 
     public void checkSpawnLocation() {
@@ -90,6 +121,8 @@ public class PlayerContainer{
     }
 
     public void updateInfluencingGeofences() throws SQLException {
+        getInfluencingGeofences().clear();
+        setLastGateofInfluence(null);
         List<HashMap> igf = Guild.getInfluencingGeofences(this, parent);
         parent.getLogger().info("Building Geofences");
         if(igf.size()>0) {
@@ -101,17 +134,62 @@ public class PlayerContainer{
         }
     }
 
-    public boolean checkZoneNegate(){
+    public boolean checkZoneNegate(String type){
+            if(getLastGateofInfluence() != null){
+                Boolean test = getLastGateofInfluence().test();
+                if(test)  return getAreaAccessLevel(type);
+            }
+            for(Geofence gf : getInfluencingGeofences()){
+                if(gf.test()){
+                    setLastGateofInfluence(gf);
+                    return getAreaAccessLevel(type);
+                }
+            }
+        return false;
+    }
 
-        parent.getLogger().info("Testing #"+ getInfluencingGeofences().size()+" Geofences");
+    public boolean checkZoneNegate(String type, Vector3 _pos){
+        if(getLastGateofInfluence() != null){
+            parent.getLogger().info("TESTING Last Gate Of Influence");
+            Boolean test = getLastGateofInfluence().test(_pos);
+            if(test)  return getAreaAccessLevel(type);
+        }
         for(Geofence gf : getInfluencingGeofences()){
-            parent.getLogger().info("Testing Geofence:"+gf.getMeta().toString());
-            parent.getLogger().info("HIT:"+String.valueOf(gf.test()));
-            if(gf.test()){
-                return true;
+            if(gf.test(_pos)){
+                setLastGateofInfluence(gf);
+                return getAreaAccessLevel(type);
             }
         }
         return false;
+    }
+
+    public boolean getAreaAccessLevel(String type){
+        Guild owner = parent.getEngine().getGuildByID(getLastGateofInfluence().getGuildID());
+        Integer power = 0;
+        switch (type){
+            case "building" :
+                parent.getLogger().info("Checking Building Rights!");
+                if(getCurrentGuild() != null) {
+                    if (owner.getId() == getCurrentGuild().getId()) {
+                        power = getCurrentGuild().getMemberByID(getId()).getPower();
+                        break;
+                    }
+                }
+                power = 0;
+                break;
+        }
+        parent.getLogger().info("Power:"+String.valueOf(power));
+        switch (type){
+            case "building" :
+                switch (owner.getType()){
+                    case "realmguard":
+                    case "normal":
+                        return power < 5;
+                }
+
+            return true;
+        }
+        return true;
     }
 
     public void spawn(){
@@ -120,6 +198,11 @@ public class PlayerContainer{
         server.dispatchCommand( server.getConsoleSender(), "mw teleport \""+spawnString[0]+"\" "+name);
         String[] sWarp = spawnString[1].split(",");
         Vector3 warpPos = new Vector3(Double.valueOf(sWarp[0]), Double.valueOf(sWarp[1]), Double.valueOf(sWarp[2]));
+        try {
+            updateInfluencingGeofences();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         player.teleport(warpPos);
         player.getSpawn();
     }
@@ -168,8 +251,16 @@ public class PlayerContainer{
         return influecingGeofences;
     }
 
+    public Geofence getLastGateofInfluence() {
+        return lastGateofInfluence;
+    }
+
     public Core getParent() {
         return parent;
+    }
+
+    public Guild getCurrentGuild() {
+        return currentGuild;
     }
 
     /*--------------------*/
@@ -177,6 +268,14 @@ public class PlayerContainer{
     /*--------------------*/
     private void setName(String n){
         name = n;
+    }
+
+    public void setCurrentGuild(Guild currentGuild) {
+        this.currentGuild = currentGuild;
+    }
+
+    public void setLastGateofInfluence(Geofence lastGateofInfluence) {
+        this.lastGateofInfluence = lastGateofInfluence;
     }
 
     public void setZone(String zone){
@@ -193,6 +292,11 @@ public class PlayerContainer{
         }
         server.dispatchCommand( server.getConsoleSender(), "mw teleport \""+zone+"\" "+getName());
         setSpawn();
+        try {
+            updateInfluencingGeofences();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public void setSpawn(){
